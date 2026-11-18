@@ -46,7 +46,10 @@ class App:
         self.action=tk.StringVar(value="Клик мышью")
         self.key=tk.StringVar(value="SPACE")
         self.status=tk.StringVar(value="Готово")
+        self.saved_target=""
         self.load_settings()
+        for variable in (self.interval,self.count,self.action,self.key):
+            variable.trace_add("write",lambda *_: self.save_settings())
 
         top=ttk.Frame(root)
         top.pack(fill="x",padx=12,pady=(12,6))
@@ -101,11 +104,13 @@ class App:
             self.count.set(str(data.get("count","0")))
             self.action.set(data.get("action","Клик мышью"))
             self.key.set(data.get("key","SPACE"))
+            self.saved_target=data.get("target","")
         except (OSError,ValueError): pass
 
     def save_settings(self):
         data={"interval":self.interval.get(),"count":self.count.get(),
-              "action":self.action.get(),"key":self.key.get()}
+              "action":self.action.get(),"key":self.key.get(),
+              "target":self.items[self.combo.current()][0] if self.combo.current()>=0 and self.items else self.saved_target}
         try:
             with open(self.config_path,"w",encoding="utf-8") as f:
                 json.dump(data,f,ensure_ascii=False,indent=2)
@@ -121,7 +126,8 @@ class App:
         labels=[f"{title}  (#{hwnd})" for title,hwnd in self.items]
         self.combo["values"]=labels
         if labels:
-            self.combo.current(0)
+            wanted=next((i for i,item in enumerate(self.items) if item[0]==self.saved_target),0)
+            self.combo.current(wanted)
         else:
             self.target.set("Окна не найдены")
 
@@ -141,6 +147,7 @@ class App:
             messagebox.showerror("Проверь настройки",str(e)); return
         if not user32.IsWindow(hwnd):
             messagebox.showerror("Окно","Окно закрыто. Обнови список."); return
+        self.saved_target=self.items[idx][0]
         self.save_settings()
         self.stop_event.clear()
         self.status.set("Работает")
