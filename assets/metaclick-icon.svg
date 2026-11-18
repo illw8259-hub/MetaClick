@@ -1,7 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
-  <circle cx="128" cy="128" r="116" fill="#000000"/>
-  <path d="M128 48c-37 0-66 29-66 66v34c0 37 29 66 66 66s66-29 66-66v-34c0-37-29-66-66-66z" fill="none" stroke="#ffffff" stroke-width="13"/>
-  <path d="M128 50v76" fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round"/>
-  <path d="M62 116h66" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
-  <path d="M128 116h66" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+<circle cx="625.5" cy="615.5" r="548" fill="#000000"/>
+<path d="M 604,43 L 554,47 L 496,57 L 453,68 L 392,90 L 336,117 L 287,147 L 250,175 L 204,218 L 164,265 L 123,321 L 91,380 L 69,438 L 55,493 L 49,551 L 48,610 L 53,670 L 65,728 L 83,784 L 109,839 L 141,890 L 179,938 L 223,980 L 272,1017 L 326,1048 L 382,1073 L 442,1090 L 502,1102 L 563,1107 L 625,1107 L 686,1102 L 746,1090 L 805,1073 L 862,1048 L 916,1017 L 965,980 L 1009,938 L 1047,890 L 1079,839 L 1105,784 L 1123,728 L 1135,670 L 1140,610 L 1139,551 L 1133,493 L 1119,438 L 1097,380 L 1065,321 L 1024,265 L 984,218 L 938,175 L 901,147 L 852,117 L 796,90 L 735,68 L 692,57 L 634,47 Z" fill="#ffffff"/>
 </svg>
