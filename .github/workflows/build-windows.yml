@@ -16,10 +16,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install PyInstaller
-        run: python -m pip install --upgrade pip pyinstaller
+      - name: Install build tools
+        run: python -m pip install --upgrade pip pyinstaller pillow cairosvg
+      - name: Create Windows icon
+        run: |
+          python -c "import cairosvg; cairosvg.svg2png(url='assets/metaclick-icon.svg', write_to='assets/metaclick-icon.png', output_width=256, output_height=256)"
+          python -c "from PIL import Image; im=Image.open('assets/metaclick-icon.png').convert('RGBA'); im.save('assets/metaclick-icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
       - name: Build EXE
-        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Metaclick Macro" metaclick.py
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Metaclick Macro" --icon "assets/metaclick-icon.ico" metaclick.py
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
