@@ -16,22 +16,25 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
       - name: Install build tools
-        run: python -m pip install --upgrade pip pyinstaller pillow svglib reportlab
-      - name: Create Windows icon
+        run: python -m pip install --upgrade pip pyinstaller pillow
+      - name: Render SVG icon (pure Node renderer)
         shell: pwsh
         run: |
+          npm install @resvg/resvg-js
           @'
-          from svglib.svglib import svg2rlg
-          from reportlab.graphics import renderPM
-          from PIL import Image
-          drawing = svg2rlg("assets/metaclick-icon.svg")
-          if drawing is None:
-              raise RuntimeError("Could not read assets/metaclick-icon.svg")
-          renderPM.drawToFile(drawing, "assets/metaclick-icon.png", fmt="PNG", dpi=96)
-          image = Image.open("assets/metaclick-icon.png").convert("RGBA")
-          image.save("assets/metaclick-icon.ico", format="ICO", sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
-          '@ | python -
+          const fs = require('fs');
+          const { Resvg } = require('@resvg/resvg-js');
+          const svg = fs.readFileSync('assets/metaclick-icon.svg', 'utf8');
+          const png = new Resvg(svg, { fitTo: { mode: 'width', value: 512 } }).render().asPng();
+          fs.writeFileSync('assets/metaclick-icon.png', png);
+          '@ | node
+      - name: Create ICO
+        run: |
+          python -c "from PIL import Image; im=Image.open('assets/metaclick-icon.png').convert('RGBA'); im.save('assets/metaclick-icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
       - name: Build EXE
         run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Metaclick Macro" --icon "assets/metaclick-icon.ico" metaclick.py
       - name: Upload EXE
