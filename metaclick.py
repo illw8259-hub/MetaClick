@@ -7,6 +7,24 @@ if os.name != "nt":
     raise SystemExit("Metaclick : Macro работает только в Windows.")
 
 u = ctypes.windll.user32
+# Correct Win32 prototypes: HWND must remain pointer-sized on 64-bit Windows.
+u.IsWindow.argtypes = [wintypes.HWND]
+u.IsWindow.restype = wintypes.BOOL
+u.GetWindowTextLengthW.argtypes = [wintypes.HWND]
+u.GetWindowTextLengthW.restype = ctypes.c_int
+u.GetWindowTextW.argtypes = [wintypes.HWND, wintypes.LPWSTR, ctypes.c_int]
+u.GetWindowTextW.restype = ctypes.c_int
+u.IsWindowVisible.argtypes = [wintypes.HWND]
+u.IsWindowVisible.restype = wintypes.BOOL
+u.GetClientRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+u.GetClientRect.restype = wintypes.BOOL
+u.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+u.PostMessageW.restype = wintypes.BOOL
+u.GetAsyncKeyState.argtypes = [ctypes.c_int]
+u.GetAsyncKeyState.restype = ctypes.c_short
+u.MapVirtualKeyW.argtypes = [wintypes.UINT, wintypes.UINT]
+u.MapVirtualKeyW.restype = wintypes.UINT
+
 WM_MOUSEMOVE = 0x0200
 MOUSE = {
     "Левая": (0x0201, 0x0202, 1),
@@ -55,6 +73,7 @@ class App:
         self.stop_event = threading.Event()
         self.worker = None
         self.saved_target = ""
+        self.hotkeys_running = True
 
         self.target = tk.StringVar()
         self.interval = tk.StringVar(value="500")
@@ -125,9 +144,29 @@ class App:
 
         self.refresh()
         self.toggle_key()
-        root.bind_all("<F6>", lambda _e: self.start())
-        root.bind_all("<F7>", lambda _e: self.stop())
+        # Global hotkeys: work even while another application is focused.
+        self.hotkey_thread = threading.Thread(target=self.poll_hotkeys, daemon=True)
+        self.hotkey_thread.start()
         root.protocol("WM_DELETE_WINDOW", self.close)
+
+    def poll_hotkeys(self):
+        was_f6 = False
+        was_f7 = False
+        while self.hotkeys_running:
+            f6 = bool(u.GetAsyncKeyState(0x75) & 0x8000)
+            f7 = bool(u.GetAsyncKeyState(0x76) & 0x8000)
+            if f6 and not was_f6:
+                try:
+                    self.root.after(0, self.start)
+                except tk.TclError:
+                    break
+            if f7 and not was_f7:
+                try:
+                    self.root.after(0, self.stop)
+                except tk.TclError:
+                    break
+            was_f6, was_f7 = f6, f7
+            time.sleep(0.025)
 
     def current_target_title(self):
         index = self.combo.current()
@@ -285,20 +324,24 @@ class App:
         while (not self.stop_event.is_set() and (count == 0 or completed < count)
                and u.IsWindow(hwnd)):
             if mouse_enabled:
-                rect = (ctypes.c_long * 4)()
-                u.GetClientRect(hwnd, ctypes.byref(rect))
-                x = max(1, (rect[2] - rect[0]) // 2)
-                y = max(1, (rect[3] - rect[1]) // 2)
+                rect = wintypes.RECT()
+                if not u.GetClientRect(hwnd, ctypes.byref(rect)):
+                    break
+                x = max(1, (rect.right - rect.left) // 2)
+                y = max(1, (rect.bottom - rect.top) // 2)
                 lparam = ((y & 0xffff) << 16) | (x & 0xffff)
                 u.PostMessageW(hwnd, WM_MOUSEMOVE, 0, lparam)
                 u.PostMessageW(hwnd, down, flag, lparam)
             if key_enabled:
-                u.PostMessageW(hwnd, WM_KEYDOWN, vk, 0)
-            time.sleep(0.03)
+                scan = u.MapVirtualKeyW(vk, 0)
+                key_down_lparam = 1 | (scan << 16)
+                key_up_lparam = key_down_lparam | (1 << 30) | (1 << 31)
+                u.PostMessageW(hwnd, WM_KEYDOWN, vk, key_down_lparam)
+            time.sleep(0.05)
             if mouse_enabled:
                 u.PostMessageW(hwnd, up, 0, lparam)
             if key_enabled:
-                u.PostMessageW(hwnd, WM_KEYUP, vk, 0)
+                u.PostMessageW(hwnd, WM_KEYUP, vk, key_up_lparam)
             completed += 1
             self.stop_event.wait(delay)
         try:
@@ -316,6 +359,7 @@ class App:
 
     def close(self):
         self.save_settings()
+        self.hotkeys_running = False
         self.stop()
         self.root.destroy()
 
