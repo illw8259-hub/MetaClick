@@ -12,26 +12,18 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt pyinstaller
-      - name: Build one-file application
-        shell: cmd
-        run: >
-          python -m PyInstaller --noconfirm --clean --onefile --windowed
-          --name "Metaclick Macro" --add-data "avatar.png;."
-          --collect-all pynput metaclick.py
+      - name: Install PyInstaller
+        run: python -m pip install --upgrade pip pyinstaller
+      - name: Build EXE
+        run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Metaclick Macro" metaclick.py
       - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: Metaclick-Macro-Windows
-          path: dist/Metaclick Macro.exe
+          path: "dist/Metaclick Macro.exe"
           if-no-files-found: error
           retention-days: 30
