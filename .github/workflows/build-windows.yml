@@ -17,11 +17,21 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install build tools
-        run: python -m pip install --upgrade pip pyinstaller pillow cairosvg
+        run: python -m pip install --upgrade pip pyinstaller pillow svglib reportlab
       - name: Create Windows icon
+        shell: pwsh
         run: |
-          python -c "import cairosvg; cairosvg.svg2png(url='assets/metaclick-icon.svg', write_to='assets/metaclick-icon.png', output_width=256, output_height=256)"
-          python -c "from PIL import Image; im=Image.open('assets/metaclick-icon.png').convert('RGBA'); im.save('assets/metaclick-icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])"
+          @'
+          from svglib.svglib import svg2rlg
+          from reportlab.graphics import renderPM
+          from PIL import Image
+          drawing = svg2rlg("assets/metaclick-icon.svg")
+          if drawing is None:
+              raise RuntimeError("Could not read assets/metaclick-icon.svg")
+          renderPM.drawToFile(drawing, "assets/metaclick-icon.png", fmt="PNG", dpi=96)
+          image = Image.open("assets/metaclick-icon.png").convert("RGBA")
+          image.save("assets/metaclick-icon.ico", format="ICO", sizes=[(256,256),(128,128),(64,64),(48,48),(32,32),(16,16)])
+          '@ | python -
       - name: Build EXE
         run: python -m PyInstaller --noconfirm --clean --onefile --windowed --name "Metaclick Macro" --icon "assets/metaclick-icon.ico" metaclick.py
       - name: Upload EXE
